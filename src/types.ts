@@ -1,12 +1,21 @@
 import { ObjectId } from 'mongodb'
 
-export type Vacunas = 'COVID-19' | 'Influenza' | 'Varicela' | 'Sarampión' | 'Rubeola' | 'VPH'
+// export type Vacunas = 'COVID-19' | 'Influenza' | 'Varicela' | 'Sarampión' | 'Rubeola' | 'VPH'
+
+export enum Vacunas {
+  'COVID-19' = 'COVID-19',
+  Influenza = 'Influenza',
+  Varicela = 'Varicela',
+  Sarampión = 'Sarampión',
+  Rubeola = 'Rubeola',
+  VPH = 'VPH'
+}
 
 // Interfaz que representa una vacuna administrada a un paciente
 export interface Vacuna {
   _id: ObjectId
   fechaAplicacion: Date
-  paciente: ObjectId
+  cedula: number
   vacuna: Vacunas
   vacunador: string
   lugar: string

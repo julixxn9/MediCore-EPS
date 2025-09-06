@@ -265,7 +265,4 @@ paciente.delete('/:id', async (req, res) => {
   }
 })
 
-// se utilizara patch para las vacunas
-paciente.patch('')
-
 export default paciente
