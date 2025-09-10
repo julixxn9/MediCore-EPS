@@ -11,15 +11,22 @@ paciente.get('/', async (_, res) => {
   res.json({ message: resultado })
 })
 
-// Obtener un paciente por ID
+// Obtener un paciente por ID o cédula
 paciente.get('/:id', async (req, res) => {
   try {
-    const { id: _id } = req.params
-    if (!ObjectId.isValid(_id)) {
-      return res.status(400).json({ message: 'ID inválido' })
+    const { id } = req.params
+    let resultado: Paciente | null = null
+
+    // caso 1: si es un ObjectId válido
+    if (ObjectId.isValid(id)) {
+      resultado = await colPacientes.findOne({ _id: new ObjectId(id) }) as Paciente | null
     }
 
-    const resultado = await colPacientes.findOne({ _id: new ObjectId(_id) }) as Paciente
+    // caso 2: si no es ObjectId válido, intentamos como cédula numérica
+    if (resultado == null && !isNaN(Number(id))) {
+      const cedula = Number(id)
+      resultado = await colPacientes.findOne({ cedula }) as Paciente | null
+    }
 
     if (resultado == null) {
       return res.status(404).json({ message: 'Paciente no encontrado' })
