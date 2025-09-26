@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { cedulaValida } from '../utils/validaciones'
+import { validarCedula } from '../utils/validaciones'
 // import { colPacientes } from '../index'
 // import { Paciente } from '../types'
 
@@ -18,9 +18,10 @@ login.post('/', async (req, res) => {
     return res.status(400).json({ message: 'Cédula y clave son requeridos' })
   }
 
-  const errorCedula = cedulaValida(cedula)
-  if (errorCedula !== true) {
-    return res.status(400).json(errorCedula)
+  const errorCedula = validarCedula(cedula)
+  if (errorCedula !== undefined) {
+    return res.status(400).json({ message: 'Cédula inválida: entre 5 y 10 dígitos' })
+  }
   }
 
   try {

@@ -1,7 +1,166 @@
-// Funciones de validación
-export function cedulaValida (cedula: number): true | { error: string } {
-  if (cedula <= 0 || cedula.toString().length < 5 || cedula.toString().length > 10) {
-    return { error: 'Cédula inválida: debe ser mayor a 0 y tener entre 5 y 10 dígitos' }
+import { ObjectId } from 'mongodb'
+import { colPacientes } from '../index'
+import { Paciente, Vacuna, Vacunas } from '../types'
+
+// ---------------- UTILIDAD GENERAL ----------------
+
+// función generadora de errores intencionales
+export function resError (codigo: number, mensaje: string): never {
+  throw new Error(JSON.stringify({ codigo, mensaje }))
+}
+
+// valida que el cuerpo no sea nulo y tenga el formato esperado
+export function validarCuerpo (cuerpo: unknown, debeSerArray = false): void | never {
+  if (cuerpo == null) {
+    resError(400, 'falta un cuerpo en la petición')
   }
-  return true
+  if (typeof cuerpo !== 'object') {
+    resError(400, 'el cuerpo de la petición no es válido')
+  }
+  if (!debeSerArray && Array.isArray(cuerpo)) {
+    resError(400, 'se esperaba un objeto, no un arreglo')
+  }
+  if (debeSerArray && !Array.isArray(cuerpo)) {
+    resError(400, 'se esperaba un arreglo en el cuerpo')
+  }
+}
+
+// ---------------- VALIDACIONES PACIENTE ----------------
+
+// valida nombre y apellido
+export function validarNombreApellido (cuerpo: object): { nombre: string, apellido: string } | never {
+  if (Object.hasOwn(cuerpo, 'nombre') && Object.hasOwn(cuerpo, 'apellido')) {
+    const nombre = (cuerpo as any).nombre
+    const apellido = (cuerpo as any).apellido
+    if (typeof nombre !== 'string' || typeof apellido !== 'string') {
+      resError(400, 'nombre y apellido deben ser cadenas de texto')
+    }
+    if (nombre.trim().length === 0 || apellido.trim().length === 0) {
+      resError(400, 'nombre y apellido no pueden estar vacíos')
+    }
+    return { nombre: nombre.trim(), apellido: apellido.trim() }
+  } else {
+    resError(400, 'falta el nombre o apellido en el cuerpo de la petición')
+  }
+}
+
+// valida teléfono
+export function validarTelefono (cuerpo: object): number | never {
+  if (Object.hasOwn(cuerpo, 'telefono')) {
+    const telefono = (cuerpo as any).telefono
+    if (typeof telefono !== 'number' || !Number.isInteger(telefono)) {
+      resError(400, 'teléfono inválido: debe ser un número entero')
+    }
+    if (telefono <= 0 || telefono.toString().length !== 10) {
+      resError(400, 'teléfono inválido: debe tener 10 dígitos')
+    }
+    return telefono
+  }
+  resError(400, 'falta el teléfono en el cuerpo de la petición')
+}
+
+// valida cédula
+export async function validarCedula (cuerpo: any, deberiaExistir: boolean): Promise<number> {
+  const cedula = cuerpo?.cedula ?? cuerpo
+  if (typeof cedula !== 'number' || !Number.isInteger(cedula)) {
+    resError(400, 'cédula inválida: debe ser un número entero')
+  }
+  if (cedula <= 0 || cedula.toString().length < 5 || cedula.toString().length > 10) {
+    resError(400, 'cédula inválida: entre 5 y 10 dígitos')
+  }
+
+  const existe = await existeCedula(cedula)
+  if (deberiaExistir && !existe) {
+    resError(404, 'cédula no encontrada')
+  }
+  if (!deberiaExistir && existe) {
+    resError(409, 'cédula ya registrada')
+  }
+  return cedula
+}
+
+export async function existeCedula (cedula: number): Promise<boolean> {
+  const cedulaExiste = await colPacientes.findOne({ cedula }) as Paciente | null
+  return cedulaExiste != null
+}
+
+// validar clave (contraseña)
+export function validarClave (clave: any): string {
+  if (typeof clave !== 'string') {
+    resError(400, 'La clave debe ser una cadena de texto')
+  }
+
+  if (clave.length < 6 || clave.length > 20) {
+    resError(400, 'La clave debe tener entre 6 y 20 caracteres')
+  }
+
+  const regex = /^(?=.*[A-Za-z])(?=.*\d).+$/
+  if (!regex.test(clave)) {
+    resError(400, 'La clave debe contener al menos una letra y un número')
+  }
+
+  return clave
+}
+
+// validar foto (URL o base64)
+export function validarFoto (foto: any): string {
+  if (typeof foto !== 'string' || foto.trim() === '') {
+    resError(400, 'La foto es obligatoria y debe ser texto')
+  }
+
+  // eslint-disable-next-line no-useless-escape
+  const urlRegex = /^https?:\/\/[\w\-]+(\.[\w\-]+)+[/#?]?.*$/
+  const base64Regex = /^data:image\/(png|jpg|jpeg);base64,/
+
+  if (!urlRegex.test(foto) && !base64Regex.test(foto)) {
+    resError(400, 'La foto debe ser una URL válida o una cadena base64')
+  }
+
+  return foto
+}
+
+// ---------------- VALIDACIONES VACUNAS ----------------
+
+// validar campos de una vacuna
+export function validarVacuna (input: any, cedula: number): Vacuna {
+  const { nombreVacuna, fechaVacuna, nombreVacunador, lugarVacunacion } = input
+
+  // Validar campos requeridos
+  if (nombreVacuna == null || fechaVacuna == null || nombreVacunador == null || lugarVacunacion == null) {
+    resError(400, 'Faltan datos: nombreVacuna, fechaVacuna, nombreVacunador y lugarVacunacion son obligatorios')
+  }
+
+  if (typeof nombreVacunador !== 'string' || nombreVacunador.trim() === '') {
+    resError(400, 'El nombre del vacunador es obligatorio y debe ser un string no vacío')
+  }
+
+  if (!Object.values(Vacunas).includes(nombreVacuna)) {
+    resError(400, `Vacuna inválida. Permitidas: ${Object.values(Vacunas).join(', ')}`)
+  }
+
+  if (typeof lugarVacunacion !== 'string' || lugarVacunacion.trim() === '') {
+    resError(400, 'El lugar de vacunación es obligatorio y debe ser un string no vacío')
+  }
+
+  const fecha = new Date(fechaVacuna)
+  if (isNaN(fecha.getTime())) {
+    resError(400, 'Fecha de vacuna inválida')
+  }
+
+  return {
+    _id: new ObjectId(),
+    fechaAplicacion: fecha,
+    cedula,
+    vacuna: nombreVacuna as Vacunas,
+    vacunador: nombreVacunador.trim(),
+    lugar: lugarVacunacion.trim()
+  }
+}
+
+// validar un array de vacunas
+export function validarMultiplesVacunas (cuerpo: any[], cedula: number): Vacuna[] {
+  if (!Array.isArray(cuerpo) || cuerpo.length === 0) {
+    resError(400, 'El cuerpo debe ser un arreglo con al menos una vacuna')
+  }
+  return cuerpo.map(v => validarVacuna(v, cedula))
 }

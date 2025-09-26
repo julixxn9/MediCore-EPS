@@ -32,3 +32,5 @@ export interface Paciente {
   clave: string
   vacunas: Vacuna[]
 }
+
+export type ERRORFunc<T> = (dato: T) => false | { error: string }
