@@ -3,6 +3,7 @@ import dotenv from 'dotenv'
 import express, { json } from 'express'
 import { Collection, Db, MongoClient } from 'mongodb'
 import morgan from 'morgan'
+import login from './routes/login'
 import paciente from './routes/users'
 import vacunas from './routes/vacunas'
 import { Paciente, Vacuna } from './types'
@@ -18,8 +19,9 @@ export let colVacunas: Collection <Vacuna>
 const app = express()
 app.use(cors())
 app.use(json())
-app.use('/api/pacientes', paciente)
-app.use('/api/vacunas', vacunas)
+app.use('/EPS/pacientes', paciente)
+app.use('/EPS/vacunas', vacunas)
+app.use('/EPS/login', login)
 
 app.use(morgan('dev'))
 

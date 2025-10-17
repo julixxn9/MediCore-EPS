@@ -60,23 +60,25 @@ export function validarTelefono (cuerpo: object): number | never {
 }
 
 // valida cédula
-export async function validarCedula (cuerpo: any, deberiaExistir: boolean): Promise<number> {
-  const cedula = cuerpo?.cedula ?? cuerpo
-  if (typeof cedula !== 'number' || !Number.isInteger(cedula)) {
-    resError(400, 'cédula inválida: debe ser un número entero')
-  }
-  if (cedula <= 0 || cedula.toString().length < 5 || cedula.toString().length > 10) {
-    resError(400, 'cédula inválida: entre 5 y 10 dígitos')
+export async function validarCedula (cedula: unknown, deberiaExistir: boolean): never | Promise<number> {
+  if (cedula == null) {
+    resError(400, 'falta la cédula en el cuerpo de la petición')
   }
 
-  const existe = await existeCedula(cedula)
-  if (deberiaExistir && !existe) {
-    resError(404, 'cédula no encontrada')
+  const cedulaNumerica = Number(cedula)
+  if (typeof cedulaNumerica !== 'number' || !Number.isInteger(cedulaNumerica) || isNaN(cedulaNumerica)) {
+    resError(400, 'cédula inválida: debe ser un número entero')
   }
+
+  const existe = await existeCedula(cedulaNumerica)
   if (!deberiaExistir && existe) {
-    resError(409, 'cédula ya registrada')
+    resError(409, 'La cédula ya está registrada')
   }
-  return cedula
+  if (deberiaExistir && !existe) {
+    resError(404, 'La cédula no está registrada')
+  }
+
+  return cedulaNumerica
 }
 
 export async function existeCedula (cedula: number): Promise<boolean> {
@@ -163,4 +165,13 @@ export function validarMultiplesVacunas (cuerpo: any[], cedula: number): Vacuna[
     resError(400, 'El cuerpo debe ser un arreglo con al menos una vacuna')
   }
   return cuerpo.map(v => validarVacuna(v, cedula))
+}
+
+// ---------------- VALIDACIONES LOGIN ----------------
+
+// validar coincidencia de claves
+export function validarCoincidenciaClaves (clave: string, confirmarClave: string): void | never {
+  if (clave !== confirmarClave) {
+    resError(400, 'La confirmacion de la clave no coincide con la clave')
+  }
 }

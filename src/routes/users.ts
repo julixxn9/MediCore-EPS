@@ -60,7 +60,6 @@ paciente.post('/', async (req, res) => {
   try {
     const body = req.body
     validarCuerpo(body, false)
-
     const { nombre, apellido } = validarNombreApellido(body)
     const telefono = validarTelefono(body)
     const cedula = await validarCedula(body, false) // false → no debe existir
@@ -95,35 +94,52 @@ paciente.post('/', async (req, res) => {
 // Actualizar paciente
 paciente.put('/:id', async (req, res) => {
   try {
-    const { id } = req.params
-    if (!ObjectId.isValid(id)) {
-      resError(400, 'ID de paciente inválido')
+    const { id: _id } = req.params
+
+    let posiblePaciente: Paciente | null = null
+    if (ObjectId.isValid(_id)) {
+      posiblePaciente = await colPacientes.findOne({ _id: new ObjectId(_id) }) as Paciente
+    } else {
+      const cedula = validarCedula(_id, true) // true → debe existir
+      posiblePaciente = await colPacientes.findOne({ cedula }) as Paciente
+    }
+
+    if (posiblePaciente == null) {
+      resError(404, 'Paciente no encontrado')
     }
 
     validarCuerpo(req.body, false)
-    const { nombre, apellido } = validarNombreApellido(req.body)
-    const telefono = validarTelefono(req.body)
     const cedula = await validarCedula(req.body, true) // true → debe existir
-    const foto = validarFoto(req.body.foto)
-    const claveActual = validarClave(req.body.claveActual)
-    const claveNueva = validarClave(req.body.claveNueva)
 
-    const pacienteDB = await colPacientes.findOne({ _id: new ObjectId(id) }) as Paciente | null
+    if (ObjectId.isValid(_id)) {
+      const posibleOtroPaciente = await colPacientes.findOne({ _id: new ObjectId(_id), cedula }) as Paciente
+      if (posibleOtroPaciente == null) {
+        resError(409, 'La cédula ya está registrada en otro paciente y no es la del usuario actual')
+      }
+    } else {
+      if (posiblePaciente.cedula !== cedula) {
+        resError(409, 'La cédula ya está registrada en otro paciente y no es la del usuario actual')
+      }
+    }
+
+    const pacienteDB = await colPacientes.findOne({ _id: new ObjectId(_id) }) as Paciente | null
     if (pacienteDB == null) {
       resError(404, 'Paciente no encontrado')
     }
+    const { nombre, apellido } = validarNombreApellido(req.body)
+    const telefono = validarTelefono(req.body)
+    const foto = validarFoto(req.body.foto)
+    const claveActual = validarClave(req.body.claveActual)
+    const claveNueva = validarClave(req.body.claveNueva)
 
     if (pacienteDB.clave !== claveActual) {
       resError(400, 'La clave actual no es correcta')
     }
 
-    const duplicado = await colPacientes.findOne({
-      cedula,
-      _id: { $ne: new ObjectId(id) }
-    }) as Paciente | null
+    const duplicado = await colPacientes.findOne({ cedula, _id: new ObjectId(_id) }) as Paciente | null
 
-    if (duplicado != null) {
-      resError(409, 'La cédula ya está registrada en otro paciente')
+    if (duplicado == null) {
+      resError(409, 'La cédula ya está registrada en otro paciente y no es la del usuario actual')
     }
 
     const pacienteActualizado: Omit<Paciente, '_id' | 'vacunas'> = {
@@ -136,7 +152,7 @@ paciente.put('/:id', async (req, res) => {
     }
 
     await colPacientes.updateOne(
-      { _id: new ObjectId(id) },
+      { _id: new ObjectId(_id) },
       { $set: pacienteActualizado }
     )
 
