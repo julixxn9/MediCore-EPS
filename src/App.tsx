@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Auth from "./pages/Auth";
@@ -10,6 +10,7 @@ function App() {
         <Routes>
           {/* Rutas de autenticación */}
           <Route path="/auth" element={<Auth />}>
+            <Route index element={<Navigate to="login" replace />} />
             <Route path="login" element={<Login />} />
             <Route path="register" element={<Register />} />
           </Route>
