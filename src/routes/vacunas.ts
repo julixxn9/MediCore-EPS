@@ -17,6 +17,7 @@ vacunas.get('/', async (_, res) => {
 })
 
 // Obtener vacunas por cédula del paciente
+
 vacunas.get('/:id', async (req, res) => {
   try {
     const cedula = await validarCedula(Number(req.params.id), true)

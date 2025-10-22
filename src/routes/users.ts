@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt'
 import { Router } from 'express'
 import { ObjectId } from 'mongodb'
 import { colPacientes } from '../index'
@@ -61,12 +62,15 @@ paciente.post('/', async (req, res) => {
     const body = req.body
     validarCuerpo(body, false)
     const { nombre, apellido } = validarNombreApellido(body)
-    const telefono = validarTelefono(body)
-    const cedula = await validarCedula(body, false) // false → no debe existir
+    const telefono = validarTelefono(body.telefono)
+    const cedula = await validarCedula(body.cedula, false) // false → no debe existir
     const foto = validarFoto(body.foto)
     const clave = validarClave(body.clave)
 
     const _id = new ObjectId()
+
+    const sal = await bcrypt.genSalt(10) // generar sal (numero aleatorio para el hash)
+    const claveHash = await bcrypt.hash(clave, sal) // hashear la clave con la sal
 
     const nuevoPaciente: Paciente = {
       _id,
@@ -75,7 +79,7 @@ paciente.post('/', async (req, res) => {
       telefono,
       cedula,
       foto,
-      clave,
+      clave: claveHash,
       vacunas: []
     }
 

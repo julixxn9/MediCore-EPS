@@ -45,18 +45,18 @@ export function validarNombreApellido (cuerpo: object): { nombre: string, apelli
 }
 
 // valida teléfono
-export function validarTelefono (cuerpo: object): number | never {
-  if (Object.hasOwn(cuerpo, 'telefono')) {
-    const telefono = (cuerpo as any).telefono
-    if (typeof telefono !== 'number' || !Number.isInteger(telefono)) {
-      resError(400, 'teléfono inválido: debe ser un número entero')
-    }
-    if (telefono <= 0 || telefono.toString().length !== 10) {
-      resError(400, 'teléfono inválido: debe tener 10 dígitos')
-    }
-    return telefono
+export function validarTelefono (telefono: unknown): number | never {
+  if (telefono == null) {
+    resError(400, 'falta el teléfono en el cuerpo de la petición')
   }
-  resError(400, 'falta el teléfono en el cuerpo de la petición')
+  const telefonoNum = Number(telefono)
+  if (typeof telefonoNum !== 'number' || !Number.isInteger(telefonoNum)) {
+    resError(400, 'teléfono inválido: debe ser un número entero')
+  }
+  if (telefonoNum <= 0 || telefonoNum.toString().length !== 10) {
+    resError(400, 'teléfono inválido: debe tener 10 dígitos')
+  }
+  return telefonoNum
 }
 
 // valida cédula
