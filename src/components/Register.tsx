@@ -3,8 +3,12 @@ import { useForm } from "react-hook-form";
 import { type RegisterFormInputs } from "../types";
 import Campo from "./Campo";
 // import PhotoPerfil from "./PhotoPerfil";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
+
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
@@ -23,11 +27,11 @@ function Register() {
         telefono: data.telefono,
         clave: data.clave,
         confirmarPassword: data.confirmarPassword,
-        // foto: photo,
+        foto: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcg3ZFcL6sAObKAc8xIpvKpk5T-pYqpIbb7w&s',
       };
 
       const response = await fetch(
-        `http://localhost:3000/api/pacientes/${data.cedula}`,
+        `http://localhost:3000/EPS/pacientes/`,
         {
           method: "POST",
           headers: {
@@ -39,6 +43,7 @@ function Register() {
 
       const result = await response.json();
       console.log(result);
+        navigate("/auth/login");
     } catch (error) {
       console.error(error);
       alert("ha ocurrido un error al registrar el usuario");

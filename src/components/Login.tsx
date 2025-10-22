@@ -2,9 +2,13 @@
 import { useForm } from "react-hook-form";
 import { type LoginFormInputs } from "../types";
 import Campo from "./Campo";
+import { useNavigate } from "react-router-dom";
 // import ModalOlvideClave from "./ModalOlvideClave"; // ejemplo futuro, de momento comentado
 
-function Login() {
+function Login({puedoEntrar}: {puedoEntrar: (valor: boolean) => void}) {
+
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
@@ -38,13 +42,16 @@ function Login() {
         return;
       }
 
+      puedoEntrar(true);
       console.log("Login exitoso:", result);
+      navigate('/home');
       // aquí podrías redirigir, guardar token, etc
     } catch (error) {
       console.error(error);
       alert("ha ocurrido un error al iniciar sesión");
     }
   });
+  
 
   return (
     <>
