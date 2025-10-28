@@ -84,6 +84,7 @@ paciente.post('/', async (req, res) => {
     }
 
     await colPacientes.insertOne(nuevoPaciente)
+    console.log(`Nuevo paciente creado: ${JSON.stringify(nuevoPaciente)}`)
     return res.status(201).json({ ...nuevoPaciente, _id: _id.toString() })
   } catch (error) {
     const e = error as Error
@@ -136,8 +137,10 @@ paciente.put('/:id', async (req, res) => {
     const claveActual = validarClave(req.body.claveActual)
     const claveNueva = validarClave(req.body.claveNueva)
 
-    if (pacienteDB.clave !== claveActual) {
-      resError(400, 'La clave actual no es correcta')
+    const esValida = await bcrypt.compare(claveActual, posiblePaciente.clave)
+
+    if (!esValida) {
+      resError(401, 'la clave actual es incorrecta')
     }
 
     const duplicado = await colPacientes.findOne({ cedula, _id: new ObjectId(_id) }) as Paciente | null
@@ -146,13 +149,16 @@ paciente.put('/:id', async (req, res) => {
       resError(409, 'La cédula ya está registrada en otro paciente y no es la del usuario actual')
     }
 
+    const salt = await bcrypt.genSalt(10)
+    const claveHash = await bcrypt.hash(claveNueva, salt)
+
     const pacienteActualizado: Omit<Paciente, '_id' | 'vacunas'> = {
       nombre,
       apellido,
       telefono,
       cedula,
       foto,
-      clave: claveNueva
+      clave: claveHash
     }
 
     await colPacientes.updateOne(
@@ -162,12 +168,34 @@ paciente.put('/:id', async (req, res) => {
 
     return res.status(200).json('Paciente actualizado correctamente')
   } catch (error) {
+    console.log(error)
     const e = error as Error
     if (e.message.startsWith('{')) {
       const objetoError = JSON.parse(e.message)
       return res.status(objetoError.codigo).json(objetoError.mensaje)
     }
     return res.status(500).json('error interno del servidor')
+  }
+})
+
+// Actualizar solo la foto del paciente
+paciente.put('/foto/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const { foto } = req.body
+
+    if (!ObjectId.isValid(id)) return res.status(400).json('ID inválido')
+    if (foto == null) return res.status(400).json('Foto requerida')
+
+    await colPacientes.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { foto } }
+    )
+
+    return res.status(200).json('Foto actualizada correctamente')
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json('Error al actualizar foto')
   }
 })
 
