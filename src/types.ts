@@ -18,7 +18,7 @@ export interface LoginFormInputs {
 // Creo una interfaz al que le puedo colocar cualquier tipo de dato T(generico)
 export interface CampoProps<T extends FieldValues> {
     titulo: string; // es lo que aparece encima del input
-    tipo: 'text' | 'number' | 'password' | 'email' | 'tel' | 'file'; // tipo de input 
+    tipo: 'text' | 'number' | 'password' | 'email' | 'tel' | 'file'; // tipo de input
     placeholder: string; // texto que aparece dentro del input
     regis: UseFormRegisterReturn; // es el register de react-hook-form, para que podamos enviar los requisitos del campo
     errors: FieldErrors<T>; //es el objeto de errores 

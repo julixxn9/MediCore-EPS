@@ -1,6 +1,13 @@
+import ModUsuario from "../components/ModUsuario"
+
 function Home() {
   return (
-    <div>Home</div>
+
+    <div>
+      Hola home
+          <ModUsuario/>
+    </div>
+
   )
 }
 
