@@ -6,37 +6,40 @@ import { useUser } from "../context/UserContext";
 
 function Login({ puedoEntrar }: { puedoEntrar: (valor: boolean) => void }) {
   const navigate = useNavigate();
-  const { setUser } = useUser();
+  const { setUser, saveUser } = useUser();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>();
 
   const handlerSubmit = handleSubmit(async (data) => {
     try {
-      const response = await fetch("http://localhost:3000/EPS/login", {
+      const response = await fetch("http://localhost:3000/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
+        credentials: 'include', // importante
       });
 
       const result = await response.json();
 
       if (!response.ok) {
+        console.log(result)
         alert(result?.message || "Credenciales incorrectas");
         return;
       }
 
       // Guarda usuario en contexto + localStorage
-      setUser(result);
+      setUser(result.info);
       localStorage.setItem("user", JSON.stringify(result));
 
-      puedoEntrar(true);
+      saveUser(result.info);
       console.log("Login exitoso:", result);
-
-      if (!result?.foto || result?.foto === "") {
-        navigate("/perfil-setup");
-      } else {
-        navigate("/home");
-      }
+      puedoEntrar(true);
+      navigate("/perfil-setup");
+      // if (!result?.foto || result?.foto === "") {
+      //   navigate("/perfil-setup");
+      // } else {
+      //   navigate("/home");
+      // }
     } catch (error) {
       console.error(error);
       alert("Error al iniciar sesión");

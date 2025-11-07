@@ -24,7 +24,7 @@ function Register() {
         telefono: data.telefono,
         clave: data.clave,
         confirmarPassword: data.confirmarPassword,
-        foto: "",
+        foto: "https://static.vecteezy.com/system/resources/previews/020/765/399/non_2x/default-profile-account-unknown-icon-black-silhouette-free-vector.jpg",
       };
 
       const response = await fetch("http://localhost:3000/EPS/pacientes/", {
@@ -34,20 +34,18 @@ function Register() {
       });
 
       const result = await response.json();
-
+      console.log(result);
       if (!response.ok) {
         alert(result?.message || "Error al registrar el usuario");
         return;
       }
 
-      // 🟣 Guarda el usuario completo en contexto y localStorage
+      // Guarda el usuario completo en contexto y localStorage
       setUser(result);
       localStorage.setItem("user", JSON.stringify(result));
 
       console.log("Registro exitoso:", result);
-
-      // Redirigir a configuración de foto
-      navigate("/perfil-setup");
+      navigate("/login");
     } catch (error) {
       console.error(error);
       alert("Ha ocurrido un error al registrar el usuario");

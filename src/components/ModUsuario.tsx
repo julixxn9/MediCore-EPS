@@ -46,7 +46,7 @@ function ModUsuario() {
     }
 
     try {
-      const res = await fetch(`http://localhost:3000/EPS/pacientes/${data.cedula}`, {
+      const res = await fetch(`http://localhost:3000/EPS/pacientes/${data.cedula || user._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -58,7 +58,7 @@ function ModUsuario() {
       }
 
       updateUser(data);
-      alert("Usuario actualizado correctamente ✅");
+      alert("Usuario actualizado correctamente");
       setMensaje("Cambios guardados con éxito");
     } catch (error) {
       console.error(error);

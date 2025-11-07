@@ -7,7 +7,6 @@ interface User {
   apellido: string;
   telefono: string;
   foto?: string;
-  token?: string;
 }
 
 interface UserContextType {
@@ -15,6 +14,7 @@ interface UserContextType {
   setUser: (user: User | null) => void;
   updateUser: (data: Partial<User>) => void;
   logout: () => void;
+  saveUser: (data: Partial<User>) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -29,9 +29,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Sincronizar con localStorage
-  useEffect(() => {
-    if (user) localStorage.setItem("user", JSON.stringify(user));
-  }, [user]);
+  const saveUser = (data: Partial<User>) => {
+    localStorage.setItem("user", JSON.stringify(data));
+  };
 
   const updateUser = (data: Partial<User>) => {
     if (!user) return;
@@ -46,7 +46,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, updateUser, logout }}>
+    <UserContext.Provider value={{ user, setUser, updateUser, logout, saveUser }}>
       {children}
     </UserContext.Provider>
   );
