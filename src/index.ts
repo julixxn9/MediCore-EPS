@@ -7,6 +7,8 @@ import login from './routes/login'
 import paciente from './routes/users'
 import vacunas from './routes/vacunas'
 import { Paciente, Vacuna } from './types'
+import logout from './routes/logout'
+import cookieParser from 'cookie-parser'
 
 dotenv.config()
 
@@ -17,11 +19,16 @@ export let colPacientes: Collection <Paciente>
 export let colVacunas: Collection <Vacuna>
 
 const app = express()
-app.use(cors())
+app.use(cors({
+  origin: process.env.RUTA_FRONTEND,
+  credentials: true
+}))
 app.use(json())
+app.use(cookieParser())
 app.use('/EPS/pacientes', paciente)
 app.use('/EPS/vacunas', vacunas)
-app.use('/EPS/login', login)
+app.use('/auth', login)
+app.use('/EPS/logout', logout)
 
 app.use(morgan('dev'))
 

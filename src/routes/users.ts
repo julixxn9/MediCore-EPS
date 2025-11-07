@@ -99,82 +99,87 @@ paciente.post('/', async (req, res) => {
 // Actualizar paciente
 paciente.put('/:id', async (req, res) => {
   try {
-    const { id: _id } = req.params
+    const { id: _id } = req.params // puede ser ObjectId o cédula
 
+    // Buscar al paciente según tipo de identificador
     let posiblePaciente: Paciente | null = null
     if (ObjectId.isValid(_id)) {
       posiblePaciente = await colPacientes.findOne({ _id: new ObjectId(_id) }) as Paciente
     } else {
-      const cedula = validarCedula(_id, true) // true → debe existir
+      const cedula = await validarCedula(_id, true) // true → debe existir
       posiblePaciente = await colPacientes.findOne({ cedula }) as Paciente
     }
 
     if (posiblePaciente == null) {
-      resError(404, 'Paciente no encontrado')
+      return res.status(404).json('Paciente no encontrado')
     }
 
+    // Validar cuerpo y campos principales
     validarCuerpo(req.body, false)
-    const cedula = await validarCedula(req.body, true) // true → debe existir
-
-    if (ObjectId.isValid(_id)) {
-      const posibleOtroPaciente = await colPacientes.findOne({ _id: new ObjectId(_id), cedula }) as Paciente
-      if (posibleOtroPaciente == null) {
-        resError(409, 'La cédula ya está registrada en otro paciente y no es la del usuario actual')
-      }
-    } else {
-      if (posiblePaciente.cedula !== cedula) {
-        resError(409, 'La cédula ya está registrada en otro paciente y no es la del usuario actual')
-      }
-    }
-
-    const pacienteDB = await colPacientes.findOne({ _id: new ObjectId(_id) }) as Paciente | null
-    if (pacienteDB == null) {
-      resError(404, 'Paciente no encontrado')
-    }
+    const cedula = await validarCedula(req.body.cedula, true) // true → debe existir
     const { nombre, apellido } = validarNombreApellido(req.body)
-    const telefono = validarTelefono(req.body)
-    const foto = validarFoto(req.body.foto)
+    const telefono = validarTelefono(req.body.telefono)
+    // const foto = validarFoto(req.body.foto)
     const claveActual = validarClave(req.body.claveActual)
     const claveNueva = validarClave(req.body.claveNueva)
 
+    // Verificar que la cédula no pertenezca a otro usuario
+    if (ObjectId.isValid(_id)) {
+      const otroPaciente = await colPacientes.findOne({
+        cedula,
+        _id: { $ne: new ObjectId(_id) }
+      }) as Paciente | null
+
+      if (otroPaciente !== null) {
+        return res.status(409).json('La cédula ya está registrada en otro paciente')
+      }
+    } else {
+      if (posiblePaciente.cedula !== cedula) {
+        const otroPaciente = await colPacientes.findOne({ cedula }) as Paciente | null
+        if ((otroPaciente != null) && otroPaciente.cedula !== posiblePaciente.cedula) {
+          return res.status(409).json('La cédula ya está registrada en otro paciente')
+        }
+      }
+    }
+
+    // Validar la clave actual
     const esValida = await bcrypt.compare(claveActual, posiblePaciente.clave)
-
     if (!esValida) {
-      resError(401, 'la clave actual es incorrecta')
+      return res.status(401).json('La clave actual es incorrecta')
     }
 
-    const duplicado = await colPacientes.findOne({ cedula, _id: new ObjectId(_id) }) as Paciente | null
-
-    if (duplicado == null) {
-      resError(409, 'La cédula ya está registrada en otro paciente y no es la del usuario actual')
-    }
-
+    // Encriptar la nueva clave
     const salt = await bcrypt.genSalt(10)
     const claveHash = await bcrypt.hash(claveNueva, salt)
 
-    const pacienteActualizado: Omit<Paciente, '_id' | 'vacunas'> = {
+    // Crear el objeto con los datos actualizados
+    const pacienteActualizado: Omit<Paciente, '_id' | 'vacunas' | 'foto'> = {
       nombre,
       apellido,
       telefono,
       cedula,
-      foto,
       clave: claveHash
     }
 
+    // Obtener el ObjectId real del paciente (soporte mixto)
+    const idPaciente = ObjectId.isValid(_id)
+      ? new ObjectId(_id)
+      : posiblePaciente._id
+
+    // Actualizar en la base de datos
     await colPacientes.updateOne(
-      { _id: new ObjectId(_id) },
+      { _id: idPaciente },
       { $set: pacienteActualizado }
     )
-
     return res.status(200).json('Paciente actualizado correctamente')
   } catch (error) {
-    console.log(error)
+    console.log('Error en PUT /pacientes/:id =>', error)
     const e = error as Error
     if (e.message.startsWith('{')) {
       const objetoError = JSON.parse(e.message)
       return res.status(objetoError.codigo).json(objetoError.mensaje)
     }
-    return res.status(500).json('error interno del servidor')
+    return res.status(500).json('Error interno del servidor')
   }
 })
 

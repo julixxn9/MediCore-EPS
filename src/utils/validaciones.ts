@@ -1,6 +1,6 @@
 import { ObjectId } from 'mongodb'
 import { colPacientes } from '../index'
-import { Paciente, Vacuna, Vacunas } from '../types'
+import { Vacuna, Vacunas } from '../types'
 
 // ---------------- UTILIDAD GENERAL ----------------
 
@@ -81,8 +81,9 @@ export async function validarCedula (cedula: unknown, deberiaExistir: boolean): 
   return cedulaNumerica
 }
 
-export async function existeCedula (cedula: number): Promise<boolean> {
-  const cedulaExiste = await colPacientes.findOne({ cedula }) as Paciente | null
+export async function existeCedula (cedula: number): Promise<boolean> | never {
+  const cedulaExiste = await colPacientes.findOne({ cedula })
+  console.log(cedulaExiste)
   return cedulaExiste != null
 }
 

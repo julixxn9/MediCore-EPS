@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { colPacientes, colVacunas } from '../index'
 import { Vacuna } from '../types'
 import { resError, validarCedula, validarCuerpo, validarMultiplesVacunas, validarVacuna } from '../utils/validaciones'
+import { auth } from '../midel/auth'
 
 const vacunas = Router()
 
@@ -33,7 +34,7 @@ vacunas.get('/:id', async (req, res) => {
 })
 
 // Registrar una nueva vacuna
-vacunas.post('/:id', async (req, res) => {
+vacunas.post('/:id', auth, async (req, res) => {
   try {
     const cedula = await validarCedula(Number(req.params.id), true)
     validarCuerpo(req.body)
@@ -49,7 +50,7 @@ vacunas.post('/:id', async (req, res) => {
     if (resultadoPacientes.matchedCount === 0) {
       resError(404, `No se encontró un paciente con la cédula ${cedula}`)
     }
-
+    console.log('Cédula autenticada =>', (req as any).cedulaSesion)
     return res.status(201).json({
       message: 'Vacuna registrada exitosamente',
       insertedId: resultadoVacunas.insertedId,
