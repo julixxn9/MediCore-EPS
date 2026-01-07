@@ -1,14 +1,15 @@
-import cors from 'cors'
 import dotenv from 'dotenv'
 import express, { json } from 'express'
 import { Collection, Db, MongoClient } from 'mongodb'
 import morgan from 'morgan'
-import login from './routes/login'
-import paciente from './routes/users'
-import vacunas from './routes/vacunas'
+import login from './routes/auth.route'
+import paciente from './routes/users.route'
+import vacunas from './routes/vacunas.route'
 import { Paciente, Vacuna } from './types'
-import logout from './routes/logout'
+import logout from './routes/logout.route'
 import cookieParser from 'cookie-parser'
+import cors from 'cors'
+import { authVerify } from './middleware/authVerify'
 
 dotenv.config()
 
@@ -19,18 +20,21 @@ export let colPacientes: Collection <Paciente>
 export let colVacunas: Collection <Vacuna>
 
 const app = express()
+
+// middlewares
 app.use(cors({
   origin: process.env.RUTA_FRONTEND,
   credentials: true
 }))
 app.use(json())
 app.use(cookieParser())
+app.use(morgan('dev'))
+
+// rutas
 app.use('/EPS/pacientes', paciente)
-app.use('/EPS/vacunas', vacunas)
+app.use('/EPS/vacunas', authVerify(true), vacunas)
 app.use('/auth', login)
 app.use('/EPS/logout', logout)
-
-app.use(morgan('dev'))
 
 /* ejemplo de middleware y rutas
 app.use(sapoHP)

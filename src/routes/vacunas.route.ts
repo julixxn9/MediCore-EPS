@@ -1,8 +1,9 @@
-import { Router } from 'express'
+import { Request, Response, Router } from 'express'
 import { colPacientes, colVacunas } from '../index'
 import { Vacuna } from '../types'
 import { resError, validarCedula, validarCuerpo, validarMultiplesVacunas, validarVacuna } from '../utils/validaciones'
-import { auth } from '../midel/auth'
+import { auth } from '../middleware/auth'
+import { authVerify } from '../middleware/authVerify'
 
 const vacunas = Router()
 
@@ -18,8 +19,7 @@ vacunas.get('/', async (_, res) => {
 })
 
 // Obtener vacunas por cédula del paciente
-
-vacunas.get('/:id', async (req, res) => {
+vacunas.get('/:id', authVerify(true), async (req: Request, res: Response) => {
   try {
     const cedula = await validarCedula(Number(req.params.id), true)
     const vacunasPorCedula = await colVacunas.find({ cedula }).toArray() as Vacuna[]

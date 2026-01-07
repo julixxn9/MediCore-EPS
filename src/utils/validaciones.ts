@@ -1,12 +1,27 @@
 import { ObjectId } from 'mongodb'
 import { colPacientes } from '../index'
-import { Vacuna, Vacunas } from '../types'
+import { Rol, Vacuna, Vacunas } from '../types'
+import { Response } from 'express'
+import jwt, { JwtPayload } from 'jsonwebtoken'
+import dotenv from 'dotenv'
+
+dotenv.config()
+
+const jwtSecret: string = process.env.JWT_SECRET as string
 
 // ---------------- UTILIDAD GENERAL ----------------
 
 // función generadora de errores intencionales
 export function resError (codigo: number, mensaje: string): never {
   throw new Error(JSON.stringify({ codigo, mensaje }))
+}
+
+export function responseToError (error: Error, res: Response): Response {
+  if (error.message.startsWith('{')) {
+    const objetoError = JSON.parse(error.message)
+    return res.status(objetoError.codigo).json(objetoError.mensaje)
+  }
+  return res.status(500).json({ error: 'error interno del servidor' })
 }
 
 // valida que el cuerpo no sea nulo y tenga el formato esperado
@@ -168,11 +183,63 @@ export function validarMultiplesVacunas (cuerpo: any[], cedula: number): Vacuna[
   return cuerpo.map(v => validarVacuna(v, cedula))
 }
 
+// validar rol
+export function validarRol (rolRequest: Rol, rolBody: unknown): Rol | never {
+  if (rolBody == null) {
+    resError(400, 'Falta el rol en el cuerpo de la petición')
+  }
+
+  if (!Object.values(Rol).includes(rolBody as Rol)) {
+    resError(403, 'No tienes permiso para asignar este rol')
+  }
+
+  if (rolRequest !== Rol.Administrador) {
+    if (rolBody !== Rol.Paciente) {
+      resError(403, 'No tienes permiso para asignar este rol')
+    }
+  }
+
+  return rolBody as Rol
+}
+
+export function validarRolAccion (rolActual: Rol, rolNecesario: Rol[]): void | never {
+  if (!rolNecesario.includes(rolActual)) {
+    resError(403, 'No tienes permiso para realizar esta acción')
+  }
+}
+
+export function validarRolDelBody (rolBody: unknown, rolEsperado: Rol[]): Rol | never {
+  if (rolBody == null) {
+    resError(400, 'Falta el rol en el cuerpo de la petición')
+  }
+  if (!Object.values(Rol).includes(rolBody as Rol)) {
+    resError(400, 'Rol inválido en el cuerpo de la petición')
+  }
+
+  if (!rolEsperado.includes(rolBody as Rol)) {
+    resError(400, 'Rol no permitido en el cuerpo de la petición')
+  }
+
+  return rolBody as Rol
+}
+
 // ---------------- VALIDACIONES LOGIN ----------------
 
 // validar coincidencia de claves
 export function validarCoincidenciaClaves (clave: string, confirmarClave: string): void | never {
   if (clave !== confirmarClave) {
     resError(400, 'La confirmacion de la clave no coincide con la clave')
+  }
+}
+
+// ---------------- VALIDACIONES TOKENS ----------------
+export function validarToken (token: string): JwtPayload | never {
+  try {
+    const jwtLegible = jwt.verify(token, jwtSecret) as JwtPayload
+    return jwtLegible
+  } catch (error) {
+    console.log(token)
+    console.log(error)
+    resError(401, 'Token inválido o expirado.')
   }
 }

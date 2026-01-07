@@ -1,3 +1,4 @@
+import { NextFunction, Response, Request } from 'express'
 import { ObjectId } from 'mongodb'
 
 // export type Vacunas = 'COVID-19' | 'Influenza' | 'Varicela' | 'Sarampión' | 'Rubeola' | 'VPH'
@@ -31,6 +32,16 @@ export interface Paciente {
   telefono: number
   clave: string
   vacunas: Vacuna[]
+  rol: Rol
+}
+
+// enum sirve para los tipos de tokens JWT
+// enum para los roles de usuario en el sistema
+export enum Rol {
+  'Paciente' = 'Paciente',
+  'Vacunador' = 'Vacunador',
+  'Administrador' = 'Administrador'
 }
 
 export type ERRORFunc<T> = (dato: T) => false | { error: string }
+export type middleware<Retorno> = (req: Request, res: Response, next: NextFunction) => Retorno
