@@ -2,17 +2,17 @@ import { useForm } from "react-hook-form";
 import { type LoginFormInputs } from "../types";
 import Campo from "./Campo";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../context/UserContext";
+import { useAuth } from "../context/authContext";
 
-function Login({ puedoEntrar }: { puedoEntrar: (valor: boolean) => void }) {
+function Login() {
   const navigate = useNavigate();
-  const { setUser, saveUser } = useUser();
+  const { setLoading, setLogged } = useAuth();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>();
 
   const handlerSubmit = handleSubmit(async (data) => {
     try {
-      const response = await fetch("http://localhost:3000/auth/login", {
+      const response = await fetch(import.meta.env.VITE_BACKEND+'/auth/login', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -28,18 +28,11 @@ function Login({ puedoEntrar }: { puedoEntrar: (valor: boolean) => void }) {
       }
 
       // Guarda usuario en contexto + localStorage
-      setUser(result.info);
       localStorage.setItem("user", JSON.stringify(result));
-
-      saveUser(result.info);
       console.log("Login exitoso:", result);
-      puedoEntrar(true);
+      setLoading(true)
+      setLogged(true)
       navigate("/perfil-setup");
-      // if (!result?.foto || result?.foto === "") {
-      //   navigate("/perfil-setup");
-      // } else {
-      //   navigate("/home");
-      // }
     } catch (error) {
       console.error(error);
       alert("Error al iniciar sesión");

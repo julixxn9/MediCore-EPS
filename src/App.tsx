@@ -1,87 +1,76 @@
-import { useState } from "react";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "./context/authContext";
+
+// Componentes públicos
+import Welcome from "./pages/Welcome";
+import Auth from "./pages/Auth";
 import Login from "./components/Login";
 import Register from "./components/Register";
-import Auth from "./pages/Auth";
-import Welcome from "./pages/Welcome";
-import Home from "./pages/Home";
-import FotoPerfil from "./pages/FotoPerfil";
-import { UserProvider } from "./context/UserContext";
 import NoUser from "./components/NoUser";
-import { useEffect } from "react";
-import { useUser } from "./context/UserContext";
+
+// Componentes protegidos
+import FotoPerfil from "./pages/FotoPerfil";
+import Home from "./pages/Home";
+import ModUsuario from "./components/ModUsuario";
+
+// 🟣 Componente para proteger rutas
+function ProtectedRoutes() {
+  const { logged } = useAuth();
+  return logged ? <Outlet /> : <Navigate to="/" replace />;
+}
 
 function App() {
-
-    const [permitido, setPermitido] = useState<boolean>(false);
-    const { setUser } = useUser();
-    const [verificado, setVerificado] = useState<boolean>(true);
-
-    useEffect(() => {
-      const verficarPermitido = async () => {
-        try {
-           const request = await fetch("http://localhost:3000/auth/login", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           credentials: 'include', // importante
-         });
-
-         if (request.ok) {
-           const response = await request.json();
-           console.log('Usuario ya autenticado:', response);
-           setPermitido(true);
-           setUser(response.info);
-         }
-       } catch (error) {
-         console.error("Error al verificar permiso:", error);
-       } finally {
-          setVerificado(false);
-       }
-     };
-
-     verficarPermitido();
-   }, [setUser]);
+  const { logged } = useAuth();
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-gray-900 via-indigo-950 to-black">
-      <UserProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Página de bienvenida */}
-          <Route path="/" index element={<Welcome />} />
-          {/* Rutas de autenticación */}
-          <Route path="/auth" element={<Auth />}>
-            <Route index element={<Navigate to="login" replace />} />
-            <Route path="login" element={<Login puedoEntrar={setPermitido} />} />
-            <Route path="register" element={<Register />} />
-          </Route>
-          {/* Rutas protegidas */}
-            {
-            permitido ? (
-              <><Route path="/perfil-setup" element={<FotoPerfil />} />
-              <Route path="/home" element={<Home />} /></>
-            ) : (
-              <Route path="*" element={<> {
-              verificado ? ( <p>
-                Cargando...
-              </p>) : (
-                <NoUser />
-              )
-              }</>} />
-                        )
-          }
-            <Route path="*" element={ <> {
-              verificado ? ( <p>
-                Cargando...
-              </p>) : (
-                permitido == false?
-                <Navigate to="/auth/login" replace /> :
-                <NoUser />
-              )
-              }</>} />
-          </Routes>
-        </BrowserRouter>
-      </UserProvider>
+      <BrowserRouter>
+
+        <Routes>
+
+          {/* 🟡 Rutas cuando NO está logueado */}
+          {!logged && (
+            <>
+              <Route path="/" element={<Welcome />} />
+
+              {/* Layout de autenticación */}
+              <Route path="/auth" element={<Auth />}>
+                <Route index element={<Navigate to="login" replace />} />
+                <Route path="login" element={<Login />} />
+                <Route path="register" element={<Register />} />
+              </Route>
+
+              {/* Cualquier URL inválida muestra NoUser */}
+              <Route path="*" element={<NoUser />} />
+            </>
+          )}
+
+          {/* 🟢 Rutas cuando SÍ está logueado */}
+          {logged && (
+            <>
+              {/* Todas las rutas protegidas pasan por ProtectedRoutes */}
+              <Route element={<ProtectedRoutes />}>
+                
+                {/* Dashboard principal */}
+                <Route path="/" element={<ModUsuario />} />
+
+                {/* Home */}
+                <Route path="/home" element={<Home />} />
+                
+                {/* Editar Foto de perfil */}
+                <Route path="/perfil-setup" element={<FotoPerfil />} />
+
+                {/* Evitar acceso a /auth si ya está logueado */}
+                <Route path="/auth/*" element={<Navigate to="/" replace />} />
+              </Route>
+
+              {/* 404 también dentro del modo logueado */}
+              <Route path="*" element={<NoUser />} />
+            </>
+          )}
+        </Routes>
+
+      </BrowserRouter>
     </div>
   );
 }

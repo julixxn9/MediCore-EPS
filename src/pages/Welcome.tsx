@@ -79,7 +79,6 @@ function Welcome() {
           </Link>
         </div>
       </motion.div>
-
       {/* pie de página */}
       <motion.footer
         initial={{ opacity: 0 }}
